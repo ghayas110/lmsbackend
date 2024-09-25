@@ -14,6 +14,7 @@ const assignmentSubmissionRoutes = require('./routes/assignment-submission-route
 const feesInvoicesRoutes = require('./routes/fee-routes')
 
 const cors = require('cors');
+app.use(express.static(__dirname + ''));
 app.use(cors());
 app.use(bodyParser.json({ limit: '250mb' }));
 app.use(bodyParser.urlencoded({ limit: '250mb', extended: true }));

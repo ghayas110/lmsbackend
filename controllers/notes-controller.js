@@ -268,8 +268,8 @@ exports.createWebNote = async (req, res) => {
             console.log(req.files.note[0].originalname,"REQ NOTE")
             console.log(req.files.noteImage[0],"REQ NOTE IMAGE")
 
-            webNoteUrl = '/resources/static/assets/uploads/notesWeb/' + req.files.note[0].originalname;
-            webNoteImageUrl = '/resources/static/assets/uploads/noteImages/' + req.files.noteImage[0].originalname;
+            webNoteUrl = `/resources/static/assets/uploads/notesWeb/${Date.now().toString().slice(0, -3)}-${req.files.note[0].originalname}`;
+            webNoteImageUrl = `/resources/static/assets/uploads/noteImages/${Date.now().toString().slice(0, -3)}-${req.files.noteImage[0].originalname}`;
 
         }
 

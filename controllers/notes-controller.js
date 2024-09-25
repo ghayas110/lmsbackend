@@ -1,6 +1,7 @@
 const dbConnection = require('../db-connection');
-const uploadNotes = require('../middleware/note-upload-middleware');
 const path = require('path');
+const uploadNotes = require('../middleware/note-upload-middleware');
+const uploadWebNote = require('../middleware/notes-web-upload.middleware');
 const fs = require('fs').promises;
 const { promisify } = require('util');
 
@@ -253,6 +254,202 @@ exports.getNoteById = async (req, res) => {
         }
     } catch (err) {
         return res.status(500).json({
+            message: err.message
+        });
+    }
+};
+
+exports.createWebNote = async (req, res) => {
+    try {
+        await uploadWebNote(req, res);
+        let webNoteUrl = "";
+        let webNoteImageUrl=""
+        if (req.files) {
+            console.log(req.files.note[0].originalname,"REQ NOTE")
+            console.log(req.files.noteImage[0],"REQ NOTE IMAGE")
+
+            webNoteUrl = '/resources/static/assets/uploads/notesWeb/' + req.files.note[0].originalname;
+            webNoteImageUrl = '/resources/static/assets/uploads/noteImages/' + req.files.noteImage[0].originalname;
+
+        }
+
+        const { paper ,name } = req.body;
+
+        const [createWebNote] = await dbConnection.execute("INSERT INTO notes_web (paper, note_url,name,image) VALUES ( ?, ?, ?, ?)", [paper, webNoteUrl,name,webNoteImageUrl]);
+
+        if (createWebNote.affectedRows === 1) {
+            return res.status(200).send({
+                message: "Note added successfully"
+            });
+        } else {
+            if (req.files) 
+                removeUploadedFiles(req.file.path);
+            return res.status(500).json({
+                message: "Could not add note"
+            });
+        }
+    } catch (err) {
+        res.status(500).send({
+            message: err.message
+        });
+    }
+};
+
+exports.updateWebNote = async (req, res) => {
+    try {
+        uploadWebNote(req, res, async (err) => {
+            if (err) {
+                return res.status(500).send({
+                    message: "Failed",
+                    data: `Could not process the file: ${err.message}`,
+                });
+            }
+
+            const { note_id, paper, name } = req.body;
+
+            if (!note_id) {
+                await removeUploadedFiless(req);
+                return res.status(400).send({ message: "note_id is required." });
+            }
+
+            const [checkExistence] = await dbConnection.execute(`SELECT * FROM notes_web WHERE note_id = ?`, [note_id]);
+            if (checkExistence.length === 0) {
+                await removeUploadedFiless(req);
+                return res.status(404).send({ message: "Note not found." });
+            }
+
+            let WebNoteUrl = checkExistence[0].note_url; 
+            let WebNoteImageUrl = checkExistence[0].image; 
+            let filesToDelete = []; 
+
+            try {
+                if (req.files && req.files.note && req.files.note.length > 0) {
+                    WebNoteUrl = `/resources/static/assets/uploads/notesWeb/${Date.now().toString().slice(0, -3)}-${req.files.note[0].originalname}`;
+                    filesToDelete.push(checkExistence[0].note_url.slice(1)); 
+                }
+
+                if (req.files && req.files.noteImage && req.files.noteImage.length > 0) {
+                    WebNoteImageUrl = `/resources/static/assets/uploads/noteImages/${Date.now().toString().slice(0, -3)}-${req.files.noteImage[0].originalname}`;
+                    filesToDelete.push(checkExistence[0].image.slice(1)); 
+                }
+
+                const updateWebNoteQuery = `UPDATE notes_web SET paper = ?, note_url = ?, image = ?, name = ? WHERE note_id = ?`;
+                const [updateWebNote] = await dbConnection.execute(updateWebNoteQuery, [paper, WebNoteUrl, WebNoteImageUrl, name, note_id]);
+
+                if (updateWebNote.affectedRows === 1) {
+                    for (const filePath of filesToDelete) {
+                        await fs.unlink(filePath); // Use fs.unlink directly
+                    }
+
+                    return res.status(200).send({
+                        message: "Web Note updated successfully"
+                    });
+                } else {
+                    throw new Error("Could not update note");
+                }
+            } catch (error) {
+                await removeUploadedFiless(req); 
+                return res.status(500).send({
+                    message: error.message
+                });
+            }
+        });
+    } catch (err) {
+        await removeUploadedFiless(req); 
+        res.status(500).send({
+            message: err.message
+        });
+    }
+};
+
+async function removeUploadedFiless(req) {
+    const filesToDelete = [];
+
+    if (req.files) {
+        if (req.files.note && req.files.note.length > 0) {
+            const notePath = path.join(__dirname, `../resources/static/assets/uploads/notesWeb/${Date.now().toString().slice(0, -3)}-${req.files.note[0].originalname}`);
+            filesToDelete.push(notePath);
+        }
+
+        if (req.files.noteImage && req.files.noteImage.length > 0) {
+            const imagePath = path.join(__dirname, `../resources/static/assets/uploads/noteImages/${Date.now().toString().slice(0, -3)}-${req.files.noteImage[0].originalname}`);
+            filesToDelete.push(imagePath);
+        }
+    }
+
+    for (const filePath of filesToDelete) {
+        try {
+            await fs.access(filePath); 
+            await fs.unlink(filePath); 
+            console.log(`Successfully deleted: ${filePath}`);
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                console.warn(`File not found for deletion: ${filePath}`);
+            } else {
+                console.error(`Failed to delete uploaded file: ${error.message}`);
+            }
+        }
+    }
+}
+
+exports.deleteWebNote = async (req, res) => {
+    try {
+        const [WebNote] = await dbConnection.execute(`SELECT note_url, image FROM notes_web WHERE note_id = ?`, [req.body.note_id]);
+
+        const WebNoteUrl = WebNote[0].note_url;
+        const WebNoteImageUrl = WebNote[0].image;
+
+        if (WebNoteUrl) {
+            const imagePath = path.join(__dirname, '..', WebNoteUrl);
+            if (fs.access(imagePath)) {
+                fs.unlink(imagePath);
+            }
+        }
+
+        if (WebNoteImageUrl) {
+            const imagePath = path.join(__dirname, '..', WebNoteImageUrl);
+            if (fs.access(imagePath)) {
+                fs.unlink(imagePath);
+            }
+        }
+
+        const [deleteWebNote] = await dbConnection.execute(`DELETE FROM notes_web WHERE note_id = ?`, [req.body.note_id]);
+
+        return res.status(200).json({
+            message: "Note deleted successfully"
+        });
+    } catch (err) {
+        res.status(500).send({
+            message: err.message
+        });
+    }
+};
+
+exports.getAllWebNotes = async (req, res) => {
+    try {
+        const [getAllWebNotes] = await dbConnection.execute(`SELECT * FROM notes_web`);
+        return res.status(200).json({
+            message: "Web notes retrieved successfully",
+            data: getAllWebNotes
+        });
+    } catch (err) {
+        res.status(500).send({
+            message: err.message
+        });
+    }
+};
+
+exports.getWebNotesById = async (req, res) => {
+    try {
+        const { note_id } = req.params;
+        const [getWebNotesById] = await dbConnection.execute(`SELECT * FROM notes_web where note_id=?`, [note_id]);
+
+        return res.status(200).json({
+            message: "Web note retrieved successfully",
+            data: getWebNotesById[0]
+        });
+    } catch (err) {
+        res.status(500).send({
             message: err.message
         });
     }

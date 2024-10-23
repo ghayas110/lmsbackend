@@ -16,7 +16,9 @@ exports.signUp = async (req, res) => {
         const { name, email, password, selected_course,contact } = req.body;
 
         if (!emailValidator(email)) {
+		 if(req.file){
             removeUploadedProfile(req.file.path);
+		 }
             return res.status(400).send({
                 messaage: "Invalid Email Format"
             });
@@ -24,7 +26,9 @@ exports.signUp = async (req, res) => {
 
         const [checkEmailUnique] = await dbConnection.execute(`SELECT * FROM users WHERE email = ?`, [email]);
         if (checkEmailUnique.length > 0) {
+		 if(req.file){
             removeUploadedProfile(req.file.path);
+		 }
             return res.status(400).send({
                 message: "Email already registered"
             });
@@ -38,7 +42,9 @@ exports.signUp = async (req, res) => {
         const signUpParams = [name, email, hashPass, selected_course, profilePictureUrl,contact];
 
         if (selected_course !== 'OS' && selected_course !== 'AS' && selected_course !== 'Both') {
-            removeUploadedProfile(req.file.path);
+             if(req.file){
+		removeUploadedProfile(req.file.path);
+	     }
             return res.status(400).send({
                 message: "Please choose a correct course"
             });
@@ -51,7 +57,9 @@ exports.signUp = async (req, res) => {
                 message: "User added successfully"
             });
         } else {
+		 if(req.file){
             removeUploadedProfile(req.file.path);
+		 }
             return res.status(500).json({
                 message: "Could not add user"
             });

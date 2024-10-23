@@ -3,7 +3,7 @@ const cors = require("cors");
 const { verifyToken } = require('../middleware/auth-middleware');
 const { XAPIKEYMIDDLEWARE } = require('../middleware/x-api-key-middleware');
 const { isAdmin } = require('../middleware/isAdmin-middleware')
-const stripe = require("stripe")("sk_test_51MFHJKIWbzOPJLuUg6l1q2z76djYhPcEisXvCjCrQmlsAidnHuwTvgEhjlj1hgo8Ydnfgwz9MX7SQPSBa1LKF8zl00QXOsHjrd")
+const stripe = require("stripe")("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")
 
 
 

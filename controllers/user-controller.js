@@ -13,12 +13,12 @@ const moment = require('moment');
 exports.signUp = async (req, res) => {
     try {
         await uploadProfile(req, res);
-        const { name, email, password, selected_course,contact } = req.body;
+        const { name, email, password, selected_course, contact } = req.body;
 
         if (!emailValidator(email)) {
-		 if(req.file){
-            removeUploadedProfile(req.file.path);
-		 }
+            if (req.file) {
+                removeUploadedProfile(req.file.path);
+            }
             return res.status(400).send({
                 messaage: "Invalid Email Format"
             });
@@ -26,9 +26,9 @@ exports.signUp = async (req, res) => {
 
         const [checkEmailUnique] = await dbConnection.execute(`SELECT * FROM users WHERE email = ?`, [email]);
         if (checkEmailUnique.length > 0) {
-		 if(req.file){
-            removeUploadedProfile(req.file.path);
-		 }
+            if (req.file) {
+                removeUploadedProfile(req.file.path);
+            }
             return res.status(400).send({
                 message: "Email already registered"
             });
@@ -39,12 +39,12 @@ exports.signUp = async (req, res) => {
         if (req.file) {
             profilePictureUrl = '/resources/static/assets/uploads/profiles/' + req.file.filename;
         }
-        const signUpParams = [name, email, hashPass, selected_course, profilePictureUrl,contact];
+        const signUpParams = [name, email, hashPass, selected_course, profilePictureUrl, contact];
 
         if (selected_course !== 'OS' && selected_course !== 'AS' && selected_course !== 'Both') {
-             if(req.file){
-		removeUploadedProfile(req.file.path);
-	     }
+            if (req.file) {
+                removeUploadedProfile(req.file.path);
+            }
             return res.status(400).send({
                 message: "Please choose a correct course"
             });
@@ -57,9 +57,9 @@ exports.signUp = async (req, res) => {
                 message: "User added successfully"
             });
         } else {
-		 if(req.file){
-            removeUploadedProfile(req.file.path);
-		 }
+            if (req.file) {
+                removeUploadedProfile(req.file.path);
+            }
             return res.status(500).json({
                 message: "Could not add user"
             });
@@ -83,7 +83,7 @@ function removeUploadedProfile(file) {
 exports.updateUserProfile = async (req, res) => {
     try {
         await uploadProfile(req, res);
-        const { id, name, email, selected_course,contact } = req.body;
+        const { id, name, email, selected_course, contact, password } = req.body;
 
         if (!emailValidator(email)) {
             if (req.file) removeUploadedProfile(req.file.path);
@@ -108,7 +108,7 @@ exports.updateUserProfile = async (req, res) => {
             });
         }
 
-        let profilePictureUrl = user[0].profile_picture_url; 
+        let profilePictureUrl = user[0].profile_picture_url;
         if (req.file) {
             profilePictureUrl = '/resources/static/assets/uploads/profiles/' + req.file.filename;
 
@@ -129,9 +129,20 @@ exports.updateUserProfile = async (req, res) => {
             });
         }
 
-        const updateParams = [name,contact, email, selected_course || user[0].selected_course, profilePictureUrl, id];
-        const [updateUser] = await dbConnection.execute(`UPDATE users SET name = ?,contact=?, email = ?, selected_course = ?, profile_picture_url = ? WHERE id = ?`, updateParams);
+        let updateParams
+        let query
+        if (req.body.password != "") {
+            const hashPass = await bcrypt.hash(password, 12);
+            updateParams = [name, contact, email, selected_course || user[0].selected_course, profilePictureUrl, hashPass, id];
+            query = `UPDATE users SET name = ?,contact=?, email = ?, selected_course = ?, profile_picture_url = ?,password=? WHERE id = ?`
 
+        }
+        else {
+            updateParams = [name, contact, email, selected_course || user[0].selected_course, profilePictureUrl, id];
+            query = `UPDATE users SET name = ?,contact=?, email = ?, selected_course = ?, profile_picture_url = ? WHERE id = ?`
+        }
+
+        const [updateUser] = await dbConnection.execute(query, updateParams);
         if (updateUser.affectedRows === 1) {
             return res.status(200).send({
                 message: "User profile updated successfully"
@@ -181,8 +192,8 @@ exports.loginUser = async (req, res) => {
             email: tokenResponse.user_data[0].email,
             selected_course: tokenResponse.user_data[0].selected_course,
             image: tokenResponse.user_data[0].profile_picture_url,
-            approved_by_admin_flag : tokenResponse.user_data[0].approved_by_admin_flag,
-            is_fee_paid_flag : tokenResponse.user_data[0].is_fee_paid_flag
+            approved_by_admin_flag: tokenResponse.user_data[0].approved_by_admin_flag,
+            is_fee_paid_flag: tokenResponse.user_data[0].is_fee_paid_flag
         }
         return res.status(200).send({
             message: tokenResponse.data,
@@ -231,7 +242,7 @@ exports.getUserById = async (req, res) => {
 exports.approveStudentAccess = async (req, res) => {
     try {
         const { id } = req.body;
-        
+
         if (req.data.user_type !== 'admin') {
             return res.status(403).json({
                 message: "Only admins can approve student access."
@@ -275,13 +286,13 @@ exports.rejectStudentAccess = async (req, res) => {
                 message: "Only admins can reject student access."
             });
         }
-            
+
         if (!id || isNaN(id)) {
             return res.status(400).json({
                 message: "A valid Student ID is required."
             });
         }
-                const [studentCheck] = await dbConnection.execute(
+        const [studentCheck] = await dbConnection.execute(
             "SELECT approved_by_admin_flag FROM users WHERE id = ?",
             [id]
         );
@@ -326,7 +337,7 @@ exports.getDashboardCounts = async (req, res) => {
     try {
         const currentMonth = moment().format('MMMM');
         const currentYear = moment().format('YYYY');
-        
+
         const [studentsCount] = await dbConnection.execute(`
             SELECT COUNT(*) AS total_students FROM users WHERE user_type = 'student'
         `);
@@ -359,6 +370,27 @@ exports.getDashboardCounts = async (req, res) => {
         });
     }
 };
+
+exports.deleteStudent = async (req, res) => {
+    try {
+        const { student_id } = req.body;
+        const [deleteStudent] = await dbConnection.execute("DELETE FROM users WHERE id = ?", [student_id]);
+        if (deleteStudent.affectedRows === 1) {
+            return res.status(200).json({
+                message: "Student deleted successfully"
+            });
+        } else {
+            return res.status(404).json({
+                message: "Student not found"
+            });
+        }
+    } catch (err) {
+        console.error(err.message);
+        return res.status(500).json({
+            message: "Internal Server Error"
+        });
+    }
+}
 
 exports.changePassword = async (req, res) => {
     try {

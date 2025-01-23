@@ -18,7 +18,7 @@ exports.insertFeeInvoice = async (req, res) => {
         const { month, year } = req.body;
         const invoiceFile = req.file ? `/resources/static/assets/uploads/fee-Invoices/${req.file.filename}` : null;
 
-        if ( !month || !year) {
+        if (!month || !year) {
             removeUploadedInvoiceFile(req.file.path);
             return res.status(400).json({
                 message: "Missing required fields"
@@ -28,7 +28,7 @@ exports.insertFeeInvoice = async (req, res) => {
         const fee_expiry_date = moment().add(30, 'days').format('YYYY-MM-DD');
 
         const [existingFees] = await dbConnection.execute(
-            `SELECT * FROM fees WHERE student_id = ? AND month = ? AND year = ?`,[student_id, month, year]
+            `SELECT * FROM fees WHERE student_id = ? AND month = ? AND year = ?`, [student_id, month, year]
         );
         if (existingFees.length > 0) {
             removeUploadedInvoiceFile(req.file.path);
@@ -40,7 +40,7 @@ exports.insertFeeInvoice = async (req, res) => {
         const [result] = await dbConnection.execute(
             `INSERT INTO fees (student_id, month, year, invoice_file, fee_status, fee_expiry_date) 
              VALUES (?, ?, ?, ?, 'Pending', ?)`,
-            [student_id, month, year, invoiceFile, fee_expiry_date]
+            [student_id, month, year, invoiceFile, '']
         );
 
         if (result.affectedRows === 1) {
@@ -196,10 +196,10 @@ exports.deleteFeeInvoice = async (req, res) => {
 exports.getAllFeeInvoicesByMonth = async (req, res) => {
     try {
         const monthNames = [
-            "January", "February", "March", "April", "May", "June", 
+            "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
         ];
-        const currentMonth = new Date().getMonth(); 
+        const currentMonth = new Date().getMonth();
         const currentMonthName = monthNames[currentMonth];
         const currentYear = new Date().getFullYear();
 
@@ -250,7 +250,7 @@ exports.getAllFeeInvoicesByMonthName = async (req, res) => {
 
         // Define the month names
         const monthNames = [
-            "January", "February", "March", "April", "May", "June", 
+            "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
         ];
 

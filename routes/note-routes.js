@@ -4,7 +4,7 @@ const { verifyToken } = require('../middleware/auth-middleware');
 const { XAPIKEYMIDDLEWARE } = require('../middleware/x-api-key-middleware');
 const { isAdmin } = require('../middleware/isAdmin-middleware')
 
-const { createNote, updateNote, deleteNote, getAllNotes, getNoteById, createWebNote, getAllWebNotes, getWebNotesById, updateWebNote, deleteWebNote } = require('../controllers/notes-controller')
+const { createNote, updateNote, deleteNote, getAllNotes, getNoteById, createWebNote, getAllWebNotes, getWebNotesById, updateWebNote, deleteWebNote, getNotesByCourseType } = require('../controllers/notes-controller')
 
 
 router.post('/notes/create-notes', verifyToken, isAdmin, XAPIKEYMIDDLEWARE, createNote)
@@ -27,5 +27,6 @@ router.get('/notes/get-all-web-notes', getAllWebNotes)
 
 router.get('/notes/get-web-note-by-Id/:note_id', getWebNotesById)
 
+router.get('/notes/get-notes-by-coursetype/:course_type',getNotesByCourseType)
 
 module.exports = router;

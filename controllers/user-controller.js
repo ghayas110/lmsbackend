@@ -41,7 +41,7 @@ exports.signUp = async (req, res) => {
         }
         const signUpParams = [name, email, hashPass, selected_course, profilePictureUrl, contact];
 
-        if (selected_course !== 'OS' && selected_course !== 'AS' && selected_course !== 'Both') {
+        if (selected_course !== 'OS' && selected_course !== 'AS' && selected_course !== 'Both'&& selected_course !== 'P2 Crash Course' && selected_course !== 'P4 Crash Course' && selected_course !== 'Crash Composite' ) {
             if (req.file) {
                 removeUploadedProfile(req.file.path);
             }
@@ -122,7 +122,7 @@ exports.updateUserProfile = async (req, res) => {
             }
         }
 
-        if (selected_course && selected_course !== 'OS' && selected_course !== 'AS' && selected_course !== 'Both') {
+        if (selected_course && selected_course !== 'OS' && selected_course !== 'AS' && selected_course !== 'Both' && selected_course !== 'P2 Crash Course' && selected_course !== 'P4 Crash Course' && selected_course !== 'Crash Composite') {
             if (req.file) removeUploadedProfile(req.file.path);
             return res.status(400).send({
                 message: "Please choose a correct course"

@@ -229,7 +229,7 @@ exports.getAllAssignments = async (req, res) => {
             LEFT JOIN 
                 users u 
                 ${isAdmin ? `
-                    ON (u.selected_course = 'Both' AND a.course_type IN ('OS', 'AS'))
+                    ON (u.selected_course = 'Both' AND a.course_type IN ('OS', 'AS','P2 Crash Course','Crash Composite','P4 Crash Course'))
                     OR u.selected_course = a.course_type
                 ` : `
                     ON u.id = ?
@@ -242,7 +242,7 @@ exports.getAllAssignments = async (req, res) => {
             WHERE 
                 u.user_type != 'admin'
                 ${!isAdmin ? `AND (
-                    (u.selected_course = 'Both' AND a.course_type IN ('OS', 'AS'))
+                    (u.selected_course = 'Both' AND a.course_type IN ('OS', 'AS','P2 Crash Course','Crash Composite','P4 Crash Course'))
                     OR u.selected_course = a.course_type
                 )` : ''}
         `;

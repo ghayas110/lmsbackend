@@ -133,23 +133,7 @@ exports.deleteChapter = async (req, res) => {
             message: err.message
         });
     }
-};
-
-exports.getAllChapters = async (req, res) => {
-    try {
-        const [getAllChaptersBoth] = await dbConnection.execute(`SELECT * FROM chapters where course_type IN ('OS','AS')`);
-
-        const [getAllChapters] = await dbConnection.execute(`SELECT * FROM chapters where course_type =?`, [req.data.selected_course]);
-        return res.status(200).json({
-            message: "Chapters retrieved successfully",
-            data: req.data.selected_course == "Both" ? getAllChaptersBoth : getAllChapters
-        });
-    } catch (err) {
-        res.status(500).send({
-            message: err.message
-        });
-    }
-};
+}
 
 exports.getChapterById = async (req, res) => {
     try {
@@ -167,3 +151,46 @@ exports.getChapterById = async (req, res) => {
     }
 };
 
+
+
+exports.getAllChapters = async (req, res) => {
+ try {
+  let courseTypes = [];
+const [admin]= await dbConnection.execute("select * from chapters")
+ switch (req.data.selected_course){
+      case "OS":
+	 courseTypes = ["OS"];
+ break;
+ case "AS":
+ courseTypes = ["AS"];
+ break;
+ case "Both":
+ courseTypes = ["OS", "AS"];
+ break;
+ case "P2 Crash Course": 
+ courseTypes = ["P2 Crash Course"];
+ break;
+ case "P4 Crash Course":
+ courseTypes = ["P4 Crash Course"];
+ break;
+ case "Crash Composite":
+courseTypes = ["P2 Crash Course","P4 Crash Course"];
+break;
+ default:
+ return res.status(400).json({
+ message: "Invalid course type selected.",
+  });
+ }
+   const placeholders = courseTypes.map(()=>'?').join(',');
+let query = `SELECT * FROM chapters WHERE course_type IN (${placeholders})`;
+    const [chapters] = await dbConnection.execute(query,courseTypes);
+ return res.status(200).json({
+ message: "Chapters retrieved successfully", 
+      data: req.data.user_type == 'admin' ?admin:chapters,
+    });
+  } catch (err) {
+    return res.status(500).json({
+    message: err.message,
+    });
+  }
+};

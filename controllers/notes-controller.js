@@ -220,23 +220,6 @@ exports.deleteNote = async (req, res) => {
     }
 };
 
-exports.getAllNotes = async (req, res) => {
-    try {
-        const [getAllNotesBoth] = await dbConnection.execute(`SELECT * FROM notes where course_type IN ('OS','AS')`);
-
-        const [getAllNotes] = await dbConnection.execute(`SELECT * FROM notes where course_type =?`, [req.data.selected_course]);
-
-        return res.status(200).json({
-            message: "Notes retrieved successfully",
-            data: req.data.selected_course == "Both" ? getAllNotesBoth : getAllNotes
-        });
-    } catch (err) {
-        return res.status(500).json({
-            message: err.message
-        });
-    }
-};
-
 exports.getNoteById = async (req, res) => {
     try {
         const { note_id } = req.params;
@@ -453,4 +436,114 @@ exports.getWebNotesById = async (req, res) => {
             message: err.message
         });
     }
+};
+
+
+
+
+exports.getAllNotes = async (req, res) => {
+ try {
+
+ let courseTypes = [];
+   switch (req.data.selected_course) {
+ case "OS":
+ courseTypes = ["OS"];
+ break;
+ case "AS":
+ courseTypes = ["AS"];
+ break;
+ case "Both": 
+        courseTypes = ["OS", "AS"];
+ break;
+      case "P2 Crash Course":
+ courseTypes = ["P2 Crash Course"];
+ break; 
+case "P4 Crash Course":
+ courseTypes = ["P4 Crash Course"];
+ break;
+ case "Crash Composite":
+        courseTypes = ["P2 Crash Course", "P4 Crash Course"];
+ break;
+ default:
+ return res.status(400).json({
+ message: "Invalid course type selected.",
+        });
+    }
+	const placeholders = courseTypes.map(()=> '?').join(',');
+let query=`SELECT * FROM notes WHERE course_type IN (${placeholders})`;    
+const [notes] = await dbConnection.execute(query, courseTypes); 
+
+return res.status(200).json({
+ message: "Notes retrieved successfully", 
+ data: notes,
+    });
+  } catch (err) {
+    return res.status(500).json({
+ message: err.message,
+    });
+  }
+};
+
+
+
+exports.getNotesByCourseType = async (req, res) => {
+
+    try {
+
+        const { course_type } = req.params; 
+
+
+        let query = `SELECT * FROM notes WHERE course_type = ?`;
+
+        let queryParams = [course_type];
+
+
+        if (course_type === "Both") {
+
+            query = `SELECT * FROM notes WHERE course_type IN ('AS', 'OS')`;
+
+            queryParams = [];
+
+        } else if (course_type === "Crash_Composite") {
+
+            query = `SELECT * FROM notes WHERE course_type IN ('P2 Crash Course', 'P4 Crash Course')`;
+
+            queryParams = [];
+
+        } else if (course_type === "P2_Crash_Course") {
+
+            query = `SELECT * FROM notes WHERE course_type = 'P2 Crash Course'`;
+
+            queryParams = [];
+
+        } else if (course_type === "P4_Crash_Course") {
+
+            query = `SELECT * FROM notes WHERE course_type = 'P4 Crash Course'`;
+
+            queryParams = [];
+
+        }
+
+
+        const [notes] = await dbConnection.execute(query, queryParams);
+
+
+        return res.status(200).json({
+
+            message: "Notes retrieved successfully",
+
+            data: notes
+
+        });
+
+    } catch (err) {
+
+        return res.status(500).json({
+
+            message: err.message
+
+        });
+
+    }
+
 };

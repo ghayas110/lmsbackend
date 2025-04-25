@@ -3,7 +3,7 @@ const cors = require("cors");
 const { verifyToken } = require('../middleware/auth-middleware');
 const { XAPIKEYMIDDLEWARE } = require('../middleware/x-api-key-middleware');
 const { isAdmin } = require('../middleware/isAdmin-middleware')
-const stripe = require("stripe")("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")
+const stripe = require("stripe")("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")
 
 
 
@@ -55,3 +55,4 @@ router.post('/checkout', async(req, res) => {
 
 
 module.exports = router;
+

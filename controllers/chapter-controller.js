@@ -194,3 +194,54 @@ let query = `SELECT * FROM chapters WHERE course_type IN (${placeholders})`;
     });
   }
 };
+
+
+
+
+
+exports.copyChapter = async (req, res) => {
+ try {
+ const { chapter_id, course_type } = req.body;
+ const [existingChapter] = await dbConnection.execute(
+            `SELECT * FROM chapters WHERE chap_id = ?`, [chapter_id] );
+	 if (existingChapter.length === 0) { 
+            return res.status(404).json({
+                message: "Chapter not found"
+            });
+        }
+        const { chapter_name, chapter_image_url } = existingChapter[0];
+ const [checkDuplicate] = await dbConnection.execute(
+            `SELECT * FROM chapters WHERE chapter_name = ? AND course_type = ?`, [chapter_name, course_type] ); 
+        if (checkDuplicate.length > 0) {
+            return res.status(400).json({
+	 message: "Chapter already exists in the selected course type"
+            });
+        }
+        const [insertChapter] = await dbConnection.execute( `INSERT INTO chapters (course_type, chapter_name, 
+            chapter_image_url, old_chap_id) VALUES (?, ?, ?, ?)`, [course_type, chapter_name, chapter_image_url, 
+            chapter_id]
+        );
+	 const newChapterId = insertChapter.insertId;
+	 const [existingLectures] = await dbConnection.execute( 
+            `SELECT * FROM lectures WHERE chapter_id = ?`, [chapter_id]
+        );
+	 if (existingLectures.length > 0) {
+	 const lectureInsertQueries = existingLectures.map(lecture => { 
+                return dbConnection.execute(
+                    `INSERT INTO lectures (chapter_id, title, duration, file_type, file_url) VALUES (?, ?, ?, ?, 
+                    ?)`, [newChapterId, lecture.title, lecture.duration, lecture.file_type, lecture.file_url]
+                );
+            });
+            await Promise.all(lectureInsertQueries);
+        }
+        return res.status(200).json({
+	 message: "Chapter and associated lectures copied successfully", 
+            new_chapter_id: newChapterId,
+	 copied_lectures: existingLectures.length
+        });
+    } catch (err) {
+        return res.status(500).json({
+	 message: err.message
+        });
+    }
+};

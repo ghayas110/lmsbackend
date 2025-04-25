@@ -3,7 +3,7 @@ const cors = require("cors");
 const { verifyToken } = require('../middleware/auth-middleware');
 const { XAPIKEYMIDDLEWARE } = require('../middleware/x-api-key-middleware');
 const { isAdmin } = require('../middleware/isAdmin-middleware')
-const { createChapter, updateChapter, deleteChapter, getAllChapters, getChapterById } = require('../controllers/chapter-controller');
+const { createChapter, updateChapter, deleteChapter, getAllChapters, getChapterById,copyChapter } = require('../controllers/chapter-controller');
 
 
 
@@ -17,5 +17,6 @@ router.get('/chapters/get-all-chapters', verifyToken, XAPIKEYMIDDLEWARE, getAllC
 
 router.get('/chapters/get-chapter-by-Id/:chap_id', verifyToken, XAPIKEYMIDDLEWARE, getChapterById)
 
+router.post('/chapters/copy-chapter',verifyToken,isAdmin,XAPIKEYMIDDLEWARE,copyChapter)
 
 module.exports = router;

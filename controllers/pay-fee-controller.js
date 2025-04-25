@@ -463,71 +463,53 @@ cron.schedule('0 0 * * *', async () => {
         console.error("Error in scheduled task:", err.message);
     }
 });
+               
+
 
 exports.getFeeDataForAug2024ToMay2025 = async (req, res) => {
     try {
-        const studentId = req.data.id;
-
-        const months = [
-            { month: 'August', year: 2024 },
-            { month: 'September', year: 2024 },
-            { month: 'October', year: 2024 },
-            { month: 'November', year: 2024 },
-            { month: 'December', year: 2024 },
-            { month: 'January', year: 2025 },
-            { month: 'February', year: 2025 },
-            { month: 'March', year: 2025 },
-            { month: 'April', year: 2025 },
-            { month: 'May', year: 2025 }
-        ];
-
-        // Generate the WHERE clause for the query
-        const conditions = months.map(({ month, year }) => `(f.month = '${month}' AND f.year = ${year})`).join(' OR ');
-
-        const [feeData] = await dbConnection.execute(`
-            SELECT 
-                f.fee_id,
-                f.month,
-                f.year,
-                f.invoice_file,
-                f.fee_status,
-                f.fee_expiry_date,
-                f.approved_by,
-                f.created_at,
-                f.updated_at
-            FROM 
-                fees f
-            WHERE 
-                f.student_id = ? 
-                AND (${conditions})
-        `, [studentId]);
-
-        const feeDataMap = feeData.reduce((acc, fee) => {
+ const studentId = req.data.id;
+ const courseType = req.data.selected_course;
+	 let months = [];
+	 if (["P2 Crash Course", "P4 Crash Course", "Crash Composite"].includes(courseType)) {
+            months = [
+	 { month: 'February', year: 2025 },
+	 { month: 'March', year: 2025 },
+	 { month: 'April', year: 2025 },
+	 { month: 'May', year: 2025 }
+            ];
+        } else {
+            months = [
+	 { month: 'August', year: 2024 },
+	 { month: 'September', year: 2024 },
+	 { month: 'October', year: 2024 },
+	 { month: 'November', year: 2024 }, { month: 'December', year: 2024 },
+	 { month: 'January', year: 2025 }, { month: 'February', year: 2025 }, { month: 'March', year: 2025 },
+	 { month: 'April', year: 2025 }, { month: 'May', year: 2025 }
+            ];
+        }
+        const conditions = months .map(({ month, year }) => `(f.month = '${month}' AND f.year = ${year})`) 
+            .join(' OR ');
+        const [feeData] = await dbConnection.execute(` SELECT f.fee_id, f.month, f.year, f.invoice_file, f.fee_status, f.fee_expiry_date, f.approved_by, f.created_at, f.updated_at
+            FROM fees f WHERE f.student_id = ? AND (${conditions}) `, [studentId]);
+	 const feeDataMap = feeData.reduce((acc, fee) => {
             acc[`${fee.month}-${fee.year}`] = fee;
-            return acc;
+	 return acc;
         }, {});
-
         const result = months.map(({ month, year }) => {
-            return feeDataMap[`${month}-${year}`] || {
-                fee_id: null,
-                month,
-                year,
-                invoice_file: null,
-                fee_status: "Pending",
-                fee_expiry_date: null,
-                approved_by: null,
-                created_at: null,
-                updated_at: null
+	 return feeDataMap[`${month}-${year}`] || {
+	 fee_id: null, 
+         month, year, invoice_file: null, fee_status: "Pending", fee_expiry_date: null, approved_by: null, 
+         created_at: null, updated_at: null
             };
         });
-
         return res.status(200).json({
-            message: "Fee data retrieved successfully",
-            data: result
+	 message: "Fee data retrieved successfully",
+	 data: result
         });
     } catch (err) {
         return res.status(500).json({
-            message: err.message
+	 message: err.message
         });
     }
 };
